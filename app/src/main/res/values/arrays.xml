@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="product_ids">
+        <item>test_coffee</item>
+        <item>test_sandwich</item>
+        <item>test_soundcloud</item>
+        <item>test_github</item>
+        <item>test_genymotion</item>
+        <item>test_device</item>
+        <item>test_computer</item>
+    </array>
+</resources>

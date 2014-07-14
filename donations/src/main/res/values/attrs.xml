@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PaymentViewGroup">
+        <attr name="submit_text" format="string"/>
+    </declare-styleable>
+
+    <declare-styleable name="WaitViewGroup">
+        <attr name="text" format="string"/>
+    </declare-styleable>
+</resources>
