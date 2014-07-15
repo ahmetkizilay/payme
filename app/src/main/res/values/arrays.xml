@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <array name="product_ids">
-        <item>test_coffee</item>
-        <item>test_sandwich</item>
-        <item>test_soundcloud</item>
-        <item>test_github</item>
-        <item>test_genymotion</item>
-        <item>test_device</item>
-        <item>test_computer</item>
+        <item>payme_coffee</item>
+        <item>payme_sandwich</item>
+        <item>payme_soundcloud</item>
+        <item>payme_github</item>
+        <item>payme_genymotion</item>
+        <item>payme_device</item>
+        <item>payme_computer</item>
+        <item>android.test.purchased</item>
+        <item>android.test.canceled</item>
+        <item>android.test.refunded</item>
+        <item>android.test.item_unavailable</item>
     </array>
 </resources>

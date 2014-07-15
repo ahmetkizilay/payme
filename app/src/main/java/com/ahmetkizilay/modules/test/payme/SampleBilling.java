@@ -1,8 +1,11 @@
 package com.ahmetkizilay.modules.test.payme;
 
+import android.content.Intent;
+import android.content.res.Configuration;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.DialogFragment;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -14,12 +17,19 @@ import android.widget.TextView;
 
 import com.ahmetkizilay.modules.donations.PaymentDialogFragment;
 
+import java.util.Locale;
+
 public class SampleBilling extends FragmentActivity {
 
+    private static final String PAYMENT_FRAGMENT_TAG = "frag-dialog";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sample_billing);
+
+        Configuration config = getResources().getConfiguration();
+        if (config.locale == null)
+            config.locale = Locale.getDefault();
 
         PackageManager pm = getPackageManager();
         int version = 0;
@@ -35,7 +45,7 @@ public class SampleBilling extends FragmentActivity {
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                pushToStack(PaymentDialogFragment.getInstance(R.array.product_ids), "frag-billing");
+                pushToStack(PaymentDialogFragment.getInstance(R.array.product_ids), PAYMENT_FRAGMENT_TAG);
             }
         });
     }
@@ -56,6 +66,21 @@ public class SampleBilling extends FragmentActivity {
 
         frag.show(ft, label);
 
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // pass the request back to the fragment
+        if(requestCode == PaymentDialogFragment.PAYMENT_RESULT_CODE) {
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            Fragment fragment = fragmentManager.findFragmentByTag(PAYMENT_FRAGMENT_TAG);
+            if (fragment != null)
+            {
+                fragment.onActivityResult(requestCode, resultCode, data);
+            }
+        }
     }
 
     @Override
