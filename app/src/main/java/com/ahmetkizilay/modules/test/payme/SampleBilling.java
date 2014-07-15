@@ -16,12 +16,15 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.ahmetkizilay.modules.donations.PaymentDialogFragment;
+import com.ahmetkizilay.modules.donations.ThankYouDialogFragment;
 
 import java.util.Locale;
 
 public class SampleBilling extends FragmentActivity {
 
     private static final String PAYMENT_FRAGMENT_TAG = "frag-dialog";
+    private static final String THANKYOU_FRAGMENT_TAG = "frag-thanks";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,7 +48,14 @@ public class SampleBilling extends FragmentActivity {
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                pushToStack(PaymentDialogFragment.getInstance(R.array.product_ids), PAYMENT_FRAGMENT_TAG);
+                PaymentDialogFragment payment = PaymentDialogFragment.getInstance(R.array.product_ids);
+                payment.setPaymentCompletedListener(new PaymentDialogFragment.PaymentCompletedListener() {
+                    @Override
+                    public void onPaymentCompleted() {
+                        pushToStack(ThankYouDialogFragment.newInstance("You are A.W.E.S.O.M.E!"), THANKYOU_FRAGMENT_TAG);
+                    }
+                });
+                pushToStack(payment, PAYMENT_FRAGMENT_TAG);
             }
         });
     }

@@ -303,27 +303,23 @@ public class PaymentDialogFragment extends DialogFragment implements PaymentView
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    try {
-                        // we don't really care about immediately consuming the product
-                        // so ignoring the return value here
-                        mService.consumePurchase(3, getActivity().getPackageName(), objPurchaseData.getPurchaseToken());
-                        if(mCallback != null) {
-                            mCallback.onPaymentCompleted();
-                        }
-                    }
-                    catch(RemoteException re) {
-                        re.printStackTrace();
-                    }
-                    catch(Exception e) {
-                        e.printStackTrace();
-                    }
+                try {
+                    // we don't really care about immediately consuming the product
+                    // so ignoring the return value here
+                    mService.consumePurchase(3, getActivity().getPackageName(), objPurchaseData.getPurchaseToken());
+                }
+                catch(RemoteException re) {
+                    re.printStackTrace();
+                }
+                catch(Exception e) {
+                    e.printStackTrace();
+                }
 
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            PaymentDialogFragment.this.dismiss();
-                        }
-                    });
+                dismiss();
+
+                if(mCallback != null) {
+                    mCallback.onPaymentCompleted();
+                }
                 }
             }).start();
         }
