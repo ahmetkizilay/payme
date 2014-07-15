@@ -13,6 +13,8 @@ import android.widget.RadioGroup;
 
 import com.android.vending.billing.IInAppBillingService;
 
+import java.util.Arrays;
+
 /**
  * Created by ahmetkizilay on 12.07.2014.
  */
@@ -74,7 +76,7 @@ public class PaymentViewGroup extends LinearLayout{
             public void onClick(View view) {
 
                 if(mCallback != null) {
-                    mCallback.onPaymentOptionSelected(mRadioGroup.getCheckedRadioButtonId() + "");// to be fixed later
+                    mCallback.onPaymentOptionSelected(mProducts[mRadioGroup.getCheckedRadioButtonId()].getProductId());
                 }
             }
         });
@@ -93,12 +95,13 @@ public class PaymentViewGroup extends LinearLayout{
         this.mCallback = callback;
     }
 
-
-
     private RadioButton createRadioButton(String item, String amount, int index) {
         RadioButton rb = (RadioButton) LayoutInflater.from(this.getContext()).inflate(R.layout.option_item, null);
         rb.setText(item + " - " + amount + "");
         rb.setId(index);
+        if(index == 0) {
+            rb.setChecked(true);
+        }
         this.mRadioGroup.addView(rb);
 
         return rb;

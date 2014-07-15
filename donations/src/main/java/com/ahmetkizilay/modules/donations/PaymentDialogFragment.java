@@ -1,8 +1,10 @@
 package com.ahmetkizilay.modules.donations;
 
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.ServiceConnection;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -10,6 +12,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.v4.app.DialogFragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,7 +28,10 @@ import java.util.ArrayList;
 /**
  * Created by ahmetkizilay on 13.07.2014.
  */
-public class PaymentDialogFragment extends DialogFragment {
+public class PaymentDialogFragment extends DialogFragment implements PaymentViewGroup.PaymentOptionSelectionListener {
+
+    public static final int PAYMENT_RESULT_CODE = 4426;
+    private static final String PURCHASE_TYPE = "inapp";
 
     public static PaymentDialogFragment getInstance(int resProductIds) {
         PaymentDialogFragment frag = new PaymentDialogFragment();
@@ -60,6 +66,8 @@ public class PaymentDialogFragment extends DialogFragment {
 
     private ProductInfo[] mProducts;
 
+    private PaymentCompletedListener mCallback;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,8 +80,8 @@ public class PaymentDialogFragment extends DialogFragment {
         catch(Exception exp) {}
 
         Bundle args = getArguments();
-        this.mProductIds = getResources().getStringArray(getArguments().getInt("productIds"));
         this.mTitle = args.get("title") != null ? (String) args.get("title") : "Help me buy ...";
+        this.mProductIds = getResources().getStringArray(this.inDevMode ? R.array.test_product_ids : getArguments().getInt("productIds"));
 
         this.setupBillingService();
     }
@@ -81,10 +89,11 @@ public class PaymentDialogFragment extends DialogFragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.payment_dialog, container);
         getDialog().setTitle(this.mTitle);
-        getDialog().setCancelable(true);
+        getDialog().setCancelable(false);
 
         this.vgPayment = (PaymentViewGroup) view.findViewById(R.id.vgPayment);
         this.vgWait = (WaitViewGroup) view.findViewById(R.id.vgWait);
+        this.vgPayment.setPaymentOptionSelectionListener(this);
 
         bViewIsReady = true;
 
@@ -144,15 +153,15 @@ public class PaymentDialogFragment extends DialogFragment {
 
                 ProductInfo[] arrProductInfo = null;
                 try {
-                    Bundle skuDetails = mService.getSkuDetails(3, getActivity().getPackageName(), "inapp", querySkus);
+                    Bundle skuDetails = mService.getSkuDetails(3, getActivity().getPackageName(), PURCHASE_TYPE, querySkus);
                     int response = skuDetails.getInt("RESPONSE_CODE");
                     if(response == 0) {
                         if(inDevMode) {
                             arrProductInfo = new ProductInfo[4];
-                            arrProductInfo[0] = new ProductInfo("test_coffee", "a cup of coffee", "$2.00");
-                            arrProductInfo[1] = new ProductInfo("test_sandwich", "a sandwich", "$4.00");
-                            arrProductInfo[2] = new ProductInfo("test_github", "a month of Github", "$10.00");
-                            arrProductInfo[3] = new ProductInfo("test_soundcloud", "a month of soundcloud", "$12.00");
+                            arrProductInfo[0] = new ProductInfo("android.test.purchased", "an item for purchase", "$5.00");
+                            arrProductInfo[1] = new ProductInfo("android.test.canceled", "an item to cancel", "$10.00");
+                            arrProductInfo[2] = new ProductInfo("android.test.refunded", "an item to refund", "$15.00");
+                            arrProductInfo[3] = new ProductInfo("android.test.item_unavailable", "an unavailable item", "$22.00");
                         }
                         else {
                             ArrayList<String> responseList = skuDetails.getStringArrayList("DETAILS_LIST");
@@ -169,7 +178,7 @@ public class PaymentDialogFragment extends DialogFragment {
                             }
                         }
 
-                        mProducts = arrProductInfo;
+                        mProducts = reorderProductInfo(arrProductInfo);
                     }
                 }
                 catch(RemoteException re) {
@@ -201,5 +210,139 @@ public class PaymentDialogFragment extends DialogFragment {
                 });
             }
         }).start();
+    }
+
+    private ProductInfo[] reorderProductInfo(ProductInfo[] unsorted) {
+        ProductInfo[] sorted = new ProductInfo[unsorted.length];
+        int sortedCount = 0;
+        for(int i = 0; i < mProductIds.length; i += 1) {
+            for(int j = 0; j < unsorted.length; j += 1) {
+                if(this.mProductIds[i].equals(unsorted[j].getProductId())) {
+                    sorted[sortedCount++] = unsorted[j];
+                    break;
+                }
+            }
+        }
+
+        return sorted;
+    }
+
+    private String mDeveloperPayload = "";
+    @Override
+    public void onPaymentOptionSelected(final String productId) {
+
+        this.mDeveloperPayload = RandomStringCreator.nextString(36);
+
+        // this part should be on a separate thread...
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Bundle buyIntentBundle = mService.getBuyIntent(3, getActivity().getPackageName(),
+                            productId, PURCHASE_TYPE, mDeveloperPayload);
+
+                    // this part is about making sure the item is consumed
+                    int buyIntentResponse = buyIntentBundle.getInt("RESPONSE_CODE");
+                    if(buyIntentResponse == 7) {
+                        String purchaseToken = "inapp:" + getActivity().getPackageName() + ":" + productId;
+                        int consumeResult = mService.consumePurchase(3, getActivity().getPackageName(),
+                                purchaseToken);
+                        if(consumeResult != 0) {
+                            throw new Exception("failed to consume product already owned");
+                        }
+                        else {
+                            // sending buy intent once again
+                            buyIntentBundle = mService.getBuyIntent(3, getActivity().getPackageName(),
+                                    productId, PURCHASE_TYPE, mDeveloperPayload);
+                            buyIntentResponse = buyIntentBundle.getInt("RESPONSE_CODE");
+                            if(buyIntentResponse != 0) {
+                                throw new Exception("buy intent failed after consuming");
+                            }
+                        }
+                    }
+                    else if(buyIntentResponse != 0) {
+                        throw new Exception("Unexpected Buy Intent Response: " + buyIntentResponse);
+                    }
+
+                    PendingIntent pendingIntent = buyIntentBundle.getParcelable("BUY_INTENT");
+                    getActivity().startIntentSenderForResult(pendingIntent.getIntentSender(),
+                            PAYMENT_RESULT_CODE,
+                            new Intent(), Integer.valueOf(0), Integer.valueOf(0), Integer.valueOf(0));
+                }
+                catch(RemoteException re) {
+                    Log.d("Payment-RE", re.getMessage() != null ? re.getMessage() : "");
+                    makeAsyncToast("Cannot complete your request");
+                } catch (IntentSender.SendIntentException e) {
+                    Log.d("Payment-SIE", e.getMessage() != null ? e.getMessage() : "");
+                    makeAsyncToast("Cannot complete your request");
+                }
+                catch(Exception e) {
+                    Log.d("Payment", e.getMessage() != null ? e.getMessage() : "");
+                    makeAsyncToast("Cannot complete your request");
+                }
+            }
+        }).start();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == PAYMENT_RESULT_CODE) {
+
+            int responseCode = data.getIntExtra("RESPONSE_CODE", -1);
+            String purchaseData = data.getStringExtra("INAPP_PURCHASE_DATA");
+            if(resultCode != getActivity().RESULT_OK ||responseCode != 0 || purchaseData == null) {
+                Toast.makeText(getActivity(), "Your payment could not be completed!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            final PurchaseData objPurchaseData = PurchaseData.parseJSON(purchaseData);
+            if(!objPurchaseData.getDeveloperPayload().equals(this.mDeveloperPayload)) {
+                Toast.makeText(getActivity(), "unexpected payload value", Toast.LENGTH_SHORT).show();
+            }
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        // we don't really care about immediately consuming the product
+                        // so ignoring the return value here
+                        mService.consumePurchase(3, getActivity().getPackageName(), objPurchaseData.getPurchaseToken());
+                        if(mCallback != null) {
+                            mCallback.onPaymentCompleted();
+                        }
+                    }
+                    catch(RemoteException re) {
+                        re.printStackTrace();
+                    }
+                    catch(Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            PaymentDialogFragment.this.dismiss();
+                        }
+                    });
+                }
+            }).start();
+        }
+    }
+
+    public void setPaymentCompletedListener(PaymentCompletedListener callback) {
+        this.mCallback = callback;
+    }
+
+    public interface PaymentCompletedListener {
+        public void onPaymentCompleted();
+    }
+
+    private void makeAsyncToast(final String message) {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }
