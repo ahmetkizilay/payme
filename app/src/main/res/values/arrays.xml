@@ -8,9 +8,5 @@
         <item>payme_genymotion</item>
         <item>payme_device</item>
         <item>payme_computer</item>
-        <item>android.test.purchased</item>
-        <item>android.test.canceled</item>
-        <item>android.test.refunded</item>
-        <item>android.test.item_unavailable</item>
     </array>
 </resources>
