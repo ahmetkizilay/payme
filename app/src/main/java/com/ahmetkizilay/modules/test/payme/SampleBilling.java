@@ -49,6 +49,7 @@ public class SampleBilling extends FragmentActivity {
             @Override
             public void onClick(View view) {
                 PaymentDialogFragment payment = PaymentDialogFragment.getInstance(R.array.product_ids);
+                payment.ignoreDevMode();
                 payment.setPaymentCompletedListener(new PaymentDialogFragment.PaymentCompletedListener() {
                     @Override
                     public void onPaymentCompleted() {

@@ -51,6 +51,7 @@ public class PaymentDialogFragment extends DialogFragment implements PaymentView
     }
 
     private boolean inDevMode = false;
+    private boolean mIgnoreDev = false;
 
     private String[] mProductIds;
     private String mTitle;
@@ -81,9 +82,13 @@ public class PaymentDialogFragment extends DialogFragment implements PaymentView
 
         Bundle args = getArguments();
         this.mTitle = args.get("title") != null ? (String) args.get("title") : "Help me buy ...";
-        this.mProductIds = getResources().getStringArray(this.inDevMode ? R.array.test_product_ids : getArguments().getInt("productIds"));
+        this.mProductIds = getResources().getStringArray((this.inDevMode && !this.mIgnoreDev) ? R.array.test_product_ids : getArguments().getInt("productIds"));
 
         this.setupBillingService();
+    }
+
+    public void ignoreDevMode() {
+        this.mIgnoreDev = true;
     }
 
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -156,7 +161,7 @@ public class PaymentDialogFragment extends DialogFragment implements PaymentView
                     Bundle skuDetails = mService.getSkuDetails(3, getActivity().getPackageName(), PURCHASE_TYPE, querySkus);
                     int response = skuDetails.getInt("RESPONSE_CODE");
                     if(response == 0) {
-                        if(inDevMode) {
+                        if(inDevMode && !mIgnoreDev) {
                             arrProductInfo = new ProductInfo[4];
                             arrProductInfo[0] = new ProductInfo("android.test.purchased", "an item for purchase", "$5.00");
                             arrProductInfo[1] = new ProductInfo("android.test.canceled", "an item to cancel", "$10.00");
