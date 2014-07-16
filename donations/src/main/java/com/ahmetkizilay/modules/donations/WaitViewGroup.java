@@ -33,7 +33,7 @@ public class WaitViewGroup extends LinearLayout {
     private void initTypedParams(Context context, AttributeSet attrs) {
         TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.WaitViewGroup, 0, 0);
         try {
-            this.mText = ta.getString(R.styleable.WaitViewGroup_text);
+            this.mText = ta.getString(R.styleable.WaitViewGroup_wait_text);
         }
         finally {
             ta.recycle();

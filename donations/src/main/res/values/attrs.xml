@@ -5,6 +5,6 @@
     </declare-styleable>
 
     <declare-styleable name="WaitViewGroup">
-        <attr name="text" format="string"/>
+        <attr name="wait_text" format="string"/>
     </declare-styleable>
 </resources>
